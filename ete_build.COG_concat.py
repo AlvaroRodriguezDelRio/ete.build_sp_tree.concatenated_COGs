@@ -61,7 +61,7 @@ def get_best_hit(hits):
 # parse options
 parser = argparse.ArgumentParser(description='Calculates species tree after looking for the 41 bacterial COGs in the proteomes')
 parser.add_argument("dir",help="directory where the proteomes are stored (.faa extension)",type=str)
-parser.add_argument("-n", help="directory where the fasta file for ach of the proteimes is (.fna extension)",type=str)
+parser.add_argument("-n", help="directory where the fasta file for each of the proteimes is (.fna extension)",type=str)
 parser.add_argument("-e", help="minimum e-value for considering a hit as significant", type=float)
 
 args = parser.parse_args()
@@ -69,7 +69,10 @@ faa_file_dir = args.dir
 fna_file_dir = args.n
 min_eval = args.e
 if fna_file_dir:
+	print("Reading nucleotide fastas in "+fna_file_dir)
 	fna_files = glob.glob(fna_file_dir+'*.fna')
+else:
+	print("No nucleotide fasta files provided")
 
 # variable definition
 COG_hhm_dir = "/scratch/alvaro/ete.COG_species_tree/data/fetchMG/lib/"
@@ -82,7 +85,7 @@ faa_files = glob.glob(faa_file_dir+'*.faa')
 COG_hmm_files = glob.glob(COG_hhm_dir+"*.hmm")
 
 # prepare re and variables for getting COG and sp names
-pattern_faa_name = re.compile("([A-Za-z0-9]+)\.faa")
+pattern_faa_name = re.compile("([A-Za-z0-9\_]+)\.faa")
 species_genes_dict = dict()
 pattern_COG_name = re.compile(".*\/(COG.*).hmm")
 COG_names = set()
@@ -90,8 +93,8 @@ COG_names = set()
 # run hmmer search for each species and COG
 for file in faa_files:
 	sp_name = pattern_faa_name.search(file).group(1)
+	print (sp_name)
 	species_genes_dict[sp_name] = []
-
 	for COG_hmm in COG_hmm_files:
 		COG_name = pattern_COG_name.search(COG_hmm).group(1)
 		COG_names.add(COG_name)
@@ -116,13 +119,26 @@ for COG in COG_names:
 		species_genes_dict[species].append(best_hit)
 
 # add sequences of COGs in proteome of the species to fasta file
+print ("adding sequences to faa file")
 fasta_input_ete_build = open("proteome_seqs.faa","w")
 for species in species_genes_dict:
+	print (species)
 	for seq in SeqIO.parse(faa_file_dir+species+".faa", "fasta"):
 		if seq.id in species_genes_dict[species]:
 			seq.id = species + sep + seq.id
 			seq.description = ""
 			SeqIO.write(seq, fasta_input_ete_build, "fasta")
+
+if fna_file_dir:
+	print ("add sequences to fna file")
+	fna_input_ete_build = open("proteome_seqs.fna","w")
+	for species in species_genes_dict:
+		for seq in SeqIO.parse(fna_file_dir+species+".fna", "fasta"):
+			if seq.id in species_genes_dict[species]:
+				seq.id = species + sep + seq.id
+				seq.description = ""
+				SeqIO.write(seq, fna_input_ete_build, "fasta")
+
 
 # create orthology file
 cogs_file_input_ete_build = open("cog_file.txt","w")
@@ -130,11 +146,17 @@ for COG in gene_COG_sp:
 	out_cogs_file = []
 	for species in gene_COG_sp[COG]:
 		out_cogs_file.append(species + sep + gene_COG_sp[COG][species])
-	cogs_file_input_ete_build.write('\t'.join(out_cogs_file)+"\n")
+	if len(out_cogs_file) > 0:
+		cogs_file_input_ete_build.write('\t'.join(out_cogs_file)+"\n")
 
 # run ete
 print ("Running ete build...")
-run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_100 -w standard_fasttree --clearall --rename-dup-seqnames' %\
+if fna_file_dir:
+	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -n proteome_seqs.fna -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_100 -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
+	(sep))	
+else:
+	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_100 --nt-switch-threshold 0 -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
 	(sep))
+
 print ("Done")
 print ("Results are in " + "tree/cog_100-alg_concat_default-fasttree_full/")
