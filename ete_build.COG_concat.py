@@ -152,11 +152,11 @@ for COG in gene_COG_sp:
 # run ete
 print ("Running ete build...")
 if fna_file_dir:
-	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -n proteome_seqs.fna -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_100 -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
+	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -n proteome_seqs.fna -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_all -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
 	(sep))	
 else:
-	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_100 --nt-switch-threshold 0 -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
+	run('export PATH=/scratch/alvaro/miniconda2/bin/:$PATH && ete3 build -a proteome_seqs.faa --cogs cog_file.txt --spname-delimiter "%s" -o tree -m sptree_fasttree_all --nt-switch-threshold 0 -w standard_fasttree --clearall --rename-dup-seqnames --noimg' %\
 	(sep))
 
 print ("Done")
-print ("Results are in " + "tree/cog_100-alg_concat_default-fasttree_full/")
+print ("Results are in " + "tree/cog_all-alg_concat_default-fasttree_full/")
