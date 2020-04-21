@@ -68,6 +68,9 @@ args = parser.parse_args()
 faa_file_dir = args.dir
 fna_file_dir = args.n
 min_eval = args.e
+if not min_eval:
+	min_eval = 0.001
+
 if fna_file_dir:
 	print("Reading nucleotide fastas in "+fna_file_dir)
 	fna_files = glob.glob(fna_file_dir+'*.fna')
@@ -93,17 +96,15 @@ COG_names = set()
 # run hmmer search for each species and COG
 for file in faa_files:
 	sp_name = pattern_faa_name.search(file).group(1)
-	print (sp_name)
 	species_genes_dict[sp_name] = []
 	for COG_hmm in COG_hmm_files:
 		COG_name = pattern_COG_name.search(COG_hmm).group(1)
 		COG_names.add(COG_name)
-		run_hmmer_search(file, sp_name, hmmsearch_ouput_dir, COG_hmm, COG_name)
-
+#		run_hmmer_search(file, sp_name, hmmsearch_ouput_dir, COG_hmm, COG_name)
 
 # take hits for each species and COG, write to fasta and to cog file
 gene_COG_sp = dict()
-fasta_input_ete_build = open("proteome_seqs.faa","w")
+#fasta_input_ete_build = open("proteome_seqs.faa","w")
 for COG in COG_names:
 	gene_COG_sp[COG] = dict()
 	for species in species_genes_dict:
@@ -122,7 +123,6 @@ for COG in COG_names:
 print ("adding sequences to faa file")
 fasta_input_ete_build = open("proteome_seqs.faa","w")
 for species in species_genes_dict:
-	print (species)
 	for seq in SeqIO.parse(faa_file_dir+species+".faa", "fasta"):
 		if seq.id in species_genes_dict[species]:
 			seq.id = species + sep + seq.id
@@ -130,7 +130,7 @@ for species in species_genes_dict:
 			SeqIO.write(seq, fasta_input_ete_build, "fasta")
 
 if fna_file_dir:
-	print ("add sequences to fna file")
+	print ("adding sequences to fna file")
 	fna_input_ete_build = open("proteome_seqs.fna","w")
 	for species in species_genes_dict:
 		for seq in SeqIO.parse(fna_file_dir+species+".fna", "fasta"):
