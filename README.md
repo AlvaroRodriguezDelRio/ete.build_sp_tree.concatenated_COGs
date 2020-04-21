@@ -17,9 +17,11 @@ python ete_build.COG_concat.py dir_input_faa [-n dir_input_fna] [-e evalue_thres
 
 TO-DO:
   -> only one proteome with a hit for a COG > ete throws error > avoid
+  
   -> if hit to COG0086 > COG0085 > don't include COG0085
-  -> 
+
 
 DUDAS:
 	-> More than one hit for one species in a COG? (taking the best now)
+	
 	-> One gene hit to more than one COG? (now renaming in ete command)
