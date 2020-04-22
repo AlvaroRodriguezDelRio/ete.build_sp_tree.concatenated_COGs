@@ -52,7 +52,7 @@ def parse_hmmer_search_out(hmmsearch_ouput_dir,species_name,COG_name,min_eval):
 def get_best_hit(hits):
 	min_eval_found = min(np.array(hits.values()))
 	best_hit = [key for key in hits if hits[key] == min_eval_found][0]
-	return(best_hit)
+	return(best_hit, min_eval_found)
 
 ####
 # main program
@@ -104,20 +104,63 @@ for file in faa_files:
 
 # take hits for each species and COG, write to fasta and to cog file
 gene_COG_sp = dict()
-#fasta_input_ete_build = open("proteome_seqs.faa","w")
+
 for COG in COG_names:
+	
+	# selection of COG0085 is more complex and will be done in a different way
+	if COG == "COG0086" or COG == "COG0085":
+		continue
+
 	gene_COG_sp[COG] = dict()
 	for species in species_genes_dict:
-		
+
 		# get hits by parsing hmm search output
 		hits = parse_hmmer_search_out(hmmsearch_ouput_dir,species,COG,min_eval)
 		if len(hits) == 0:
 			continue
 
 		# get best hit
-		best_hit = get_best_hit(hits)
+		best_hit,evalue = get_best_hit(hits)
 		gene_COG_sp[COG][species] = best_hit
 		species_genes_dict[species].append(best_hit)
+
+# parse and select COG0085 hits
+# if hit to COG0086 > COG0085 -> don't include COG0085
+gene_COG_sp["COG0085"] = dict()
+for species in species_genes_dict:
+	best_85_than_86_found = 0
+	final_hit_85 = ""
+	hits_86 = parse_hmmer_search_out(hmmsearch_ouput_dir,species,"COG0086",min_eval)
+	hits_85 = parse_hmmer_search_out(hmmsearch_ouput_dir,species,"COG0085",min_eval)
+	if len (hits_85) == 0:
+		continue
+	while best_85_than_86_found == 0:
+		best_hit_85,evalue_85 = get_best_hit(hits_85)
+		if (best_hit_85 not in hits_86) or (best_hit_85 in hits_86 and evalue_85 < hits_86[best_hit_85]):
+			best_85_than_86_found = 1
+			final_hit_85 = best_hit_85
+		else:
+			del hits_85[best_hit_85]
+			if len(hits_85) == 0:
+				break
+
+	if final_hit_85 != "":
+		gene_COG_sp["COG0085"][species] = final_hit_85
+		species_genes_dict[species].append(final_hit_85)
+
+
+# Avoid COGs with only one hit or no hit > ete throws error because there are no sequences to align
+for COG in COG_names:
+	if COG not in gene_COG_sp:
+		continue
+	if len(gene_COG_sp[COG]) == 0:
+		del gene_COG_sp[COG]
+	elif len(gene_COG_sp[COG]) == 1:
+		for species in species_genes_dict:
+			for seq in species_genes_dict[species]:
+				if species in gene_COG_sp[COG] and seq in gene_COG_sp[COG][species]:
+					species_genes_dict[species].remove(seq)
+		del gene_COG_sp[COG]
 
 # add sequences of COGs in proteome of the species to fasta file
 print ("adding sequences to faa file")
